@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<meta name="apple-mobile-web-app-capable" content="yes">  
+		<meta name="viewport" content="width=device-width, initial-scale=1.0,minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">  
+		<meta name="keywords" content="顺势商城" />
+		<meta name="description" content="顺势商城" />
+		<title>顺势商城</title>
+		<link rel="icon" type="image/png" href="images/logo.png" sizes="32x32">
+		<link rel="stylesheet" href="css/mui.min.css">
+		 <script src="js/mui.min.js"></script>
+		<link rel="stylesheet" href="css/public.css">
+		<link rel="stylesheet" href="css/style.css">
+		<script src="js/jquery-1.11.0.min.js"></script>
+		
+		<!-- <script src="layer/layer.js"></script> -->
+		<script src="js/jquery.cookie.js" type="text/javascript" charset="utf-8"></script>
+		<style>
+* { touch-action: pan-y; }
+			[v-cloak] {display: none;}
+			#cart{    position: relative;}
+			 #cartList{padding-bottom:80px;}  
+			 .mui-pull-bottom-pocket {    position: absolute;}
+			 .mui-pull-top-pocket{top:50%;z-index:66;}
+			 #cart .sum{bottom: 60px;}
+			 
+			 .mui-toast-container{bottom: 40%;}
+		</style>
+</head>
+<body>
+	<div class="header">
+		<a class="back" href="javascript:history.back(-1);">&nbsp;</a>
+		<span class="txt">购物车</span>
+		<a href="javascript:;" class="fr" onclick="change(this)" >管理</a>
+	</div>
+	<div id="cart" class="shopcar-container">
+		<div class="top">
+			<p class="len0">
+				<!-- <span :class="['label',check_goods.length == carlist.length ? 'mark':'']"></span> -->
+				<input type="checkbox" :checked="check_goods.length == carlist.length" @click="choseAll"/>
+				全选
+			</p>
+			<p class="len1">商品</p>
+			<p class="len2">操作</p>
+		</div>
+		<ul id="cartList" v-cloak>
+			<li v-for="(item,index) in carlist" :key="item.id">
+				
+				<div class="check">
+					<!-- <span :class="['label',item.checked==true ? 'mark':'']" :checked="item.checked"></span> -->
+					<input type="checkbox" :value="item" class="checkbox" @click="item.checked=!item.checked" :checked="item.checked" v-model="check_goods"/>
+				</div>
+				<div class="l">
+					<a :href="'goods_detail.html?id=' + item.id ">
+						<img :src="item.src" class="img"/>
+					</a>
+					<div class="info">
+						<a >
+						<p class="name">{{item.name}}</p>
+						</a>
+						<p class="guige">{{item.guige}}</p>
+						<p class="price"><span>￥ {{item.price}}</span> <span class="stock">库存：{{item.stock}}</span>  </p>
+						<div class="btn">
+							<span class="add" @click="add(index)"><img src="images/plus.png" ></span>
+							<input type="number" :value="item.num" min="1" class="num" readonly :v-model="item.num"/>
+							<span class="reduce" @click="reduce(index)"><img src="images/reduce.png" ></span>
+						</div>
+					</div>
+				</div>
+				
+				<span class="delete" @click="delete_num(item)">删除</span>
+				
+			</li>
+		</ul>
+		 <div class="sum" id='total'>
+			<div class="txt">总计：<span v-cloak>{{getTotal}}</span></div>
+			<button :class="['jiesuan',check_goods.length <= 0 ? 'disabled': '']" :disabled="check_goods.length <= 0" @click="buy">立即付款</button>
+		</div> 
+		 <div class="sum" id="reomove" style="display: none;">
+			<div class="txt">
+				全选：
+			<span>
+				<!-- <span :class="['label',check_goods.length == carlist.length ? 'mark':'']"></span> -->
+				<input type="checkbox" :checked="check_goods.length == carlist.length" @click="choseAll"/>
+			</div>
+			<button class="jiesuan" @click="removeAll">删除</button>
+		</div>
+
+</div>
+		<!--底部-->
+	<div id="footer" name="3"></div>
+	<script src="js/public.js"></script>
+
+		<script src="js/vue.min.js"></script>
+<script>
+	var vue=new Vue({
+		el:"#cart",
+		data:{
+				total:0,   //总价
+				allChecked:false,    //全选是否选中
+				carlist:[]         ,//购物车商品列表
+				check_goods: [], //已选择的商品
+				pageNum:0,
+		},
+	created(){
+		 this.getCarList();
+	},
+	computed:{				//计算属性
+		//计算总价
+		getTotal(){			//加减
+			var total=0;
+			this.check_goods.forEach(item => {
+			//总价 = 价格 * 数量
+				total += Number(item.price) * Number(item.num);
+			})
+			total=total.toFixed(2);
+			this.total=total;
+			// console.log(total)
+			return total;
+		},
+	},
+	methods: {
+		getCarList(){
+			
+			 $.get('js/home.json',function(data){
+				if(data.status==0){	
+					if(data.carlist.length<=0){
+						layer.msg("没有更多数据了");
+					}
+					else{
+						data.carlist.forEach(item=>{
+							item.checked=false;     //添加上是否选中属性
+						})
+						this.carlist=data.carlist;
+						console.log(this.carlist)
+						var carlist=data.carlist
+						for(var i=0;i<carlist.length;i++){
+						 vue.carlist.push(carlist[i]);
+						}
+					}
+					 
+				}else{					//失败
+					layer.msg("获取失败。。。")
+				}
+			})
+		},
+		choseAll(){		//全选
+				if (this.check_goods.length >0) {
+                        this.check_goods = []
+                    } else {
+                        this.carlist.forEach(item => {
+                            this.check_goods.push(item)
+                        })
+                    }
+			console.log(this.check_goods)
+			
+		},
+		check(index) {			//单选
+			//console.log(index)
+			if(this.carlist[index].checked ==true){
+				this.carlist[index].checked=false;
+			}else{
+				this.carlist[index].checked=true;
+			}
+		},
+		add(index){			//加减
+			if(this.carlist[index].num >= this.carlist[index].stock){
+			 	mui.toast("没有那么多库存");
+			}else{
+				this.carlist[index].num++
+			}
+		},
+		reduce(index){			//加减
+			if(this.carlist[index].num <= 1){
+			 	mui.toast("不能少于1");
+			}else{
+				this.carlist[index].num--
+			}
+		},
+		// 删除商品
+         delete_num(item){
+			 var that=this;
+			 var btnArray = ['取消', '确认'];
+			 mui.confirm('','确认删除？', btnArray, function(e) {
+			 	if (e.index == 1) {
+					 var id=item.id
+					 console.log("id:"+id)
+					that.check_goods.splice(that.check_goods.indexOf(item),1)
+					that.carlist.splice(that.carlist.indexOf(item),1)
+			 		mui.alert("","删除成功","确定",function(){
+			 			window.location.href = "";
+			 		})
+			 	} else {
+			 		mui.toast("取消")
+			 	}
+			 })
+			
+		},
+		//购买
+		buy(){
+			this.pay_goods={goodsinfo:this.check_goods,sum:this.total},
+			sessionStorage.setItem("pay_goods",JSON.stringify(this.pay_goods));
+			console.log(this.pay_goods);
+			window.location.href="submit_order.html"
+		},
+		// 删除所有
+		removeAll(){
+			if(this.check_goods.length == this.carlist.length){
+				this.check_goods.splice(0,this.check_goods.length);//清空数组 
+				this.carlist.splice(0,this.carlist.length);//清空数组 
+			}else{
+				mui.toast("请选择全部商品")
+			}
+		}
+	}
+	 
+})
+	function change(obj){
+		$(obj).toggleClass("active")
+		if($(obj).hasClass("active")){
+			$(obj).text("完成");
+			$("#total").hide();
+			$("#reomove").show();
+
+		}else{
+			$(obj).text("管理");
+			$("#total").show();
+			$("#reomove").hide();
+		}
+	}
+	
+</script>
+	
+	
+	
+	</body>
+</html>
